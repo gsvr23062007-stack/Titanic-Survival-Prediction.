@@ -14,7 +14,7 @@ st.set_page_config(
 FEATURES_DEFAULT = ["pclass", "sex", "age", "fare"]
 
 
-# Load machine learning model
+# Load Machine Learning model
 @st.cache_resource
 def load_model():
     return joblib.load("model.joblib")
@@ -28,7 +28,7 @@ st.write(
     "chance of survival using Machine Learning."
 )
 
-# Passenger information
+# Passenger Information
 st.subheader("Passenger Information")
 
 pclass = st.selectbox(
@@ -60,12 +60,13 @@ fare = st.slider(
 if st.button("Predict Survival", type="primary"):
 
     try:
+        # Load model
         model = load_model()
 
         # Convert gender into numerical value
         sex_value = 1 if sex == "Female" else 0
 
-        # Prepare passenger information
+        # Prepare passenger details
         values = {
             "Pclass": pclass,
             "pclass": pclass,
@@ -86,6 +87,12 @@ if st.button("Predict Survival", type="primary"):
             )
         )
 
+        # Check feature names
+        if not all(f in values for f in features):
+            raise ValueError(
+                "Model contains unsupported feature names."
+            )
+
         # Create input DataFrame
         input_data = pd.DataFrame(
             [[values[f] for f in features]],
@@ -95,6 +102,7 @@ if st.button("Predict Survival", type="primary"):
         # Predict survival
         prediction = model.predict(input_data)[0]
 
+        # Display prediction
         st.subheader("Prediction Result")
 
         if prediction == 1:
@@ -102,19 +110,21 @@ if st.button("Predict Survival", type="primary"):
         else:
             st.warning("The model predicts: Not Survived")
 
-        # Calculate survival probability
+        # Survival probability
         if hasattr(model, "predict_proba"):
+
             probabilities = model.predict_proba(input_data)[0]
             classes = list(model.classes_)
 
-            survival_probability = probabilities[
-                classes.index(1)
-            ]
+            if 1 in classes:
+                survival_probability = probabilities[
+                    classes.index(1)
+                ]
 
-            st.metric(
-                "Estimated Survival Probability",
-                f"{survival_probability:.0%}"
-            )
+                st.metric(
+                    "Estimated Survival Probability",
+                    f"{survival_probability:.0%}"
+                )
 
     except FileNotFoundError:
         st.error(
@@ -125,8 +135,6 @@ if st.button("Predict Survival", type="primary"):
         st.error("Prediction could not be completed.")
         st.write(str(e))
 
-
-# Footer
 st.caption(
     "An educational Machine Learning project using the historical "
     "Titanic dataset. Predictions are estimates, not real-world advice."
